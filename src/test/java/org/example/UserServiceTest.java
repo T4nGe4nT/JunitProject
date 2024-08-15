@@ -56,6 +56,28 @@ public class UserServiceTest {
         assertFalse(result); // Assert that registration failed
     }
 
+    @Test
+    public void testRegisterUser_NullUser() {
+        assertThrows(NullPointerException.class, () -> {
+            userService.registerUser(null);
+        });
+    }
+
+
+
+    @Test
+    public void testRegisterUser_EmptyFields() {
+        User emptyUser = new User("", "", "");
+
+        // Simulate that no user with an empty username exists in the database
+        when(mockUserDatabase.containsKey("")).thenReturn(false);
+
+        boolean result = userService.registerUser(emptyUser);
+
+        // Expect registration to pass because the service does not validate empty fields (based on current implementation)
+        assertTrue(result);
+    }
+
     // --------------- Tests for loginUser() ---------------
 
     @Test
@@ -81,6 +103,43 @@ public class UserServiceTest {
         User result = userService.loginUser("john_doe", "wrongpassword");
 
         assertNull(result); // Assert that login failed due to wrong password
+    }
+
+    @Test
+    public void testLoginUser_NullUsername() {
+        User result = userService.loginUser(null, "password123");
+
+        // Expect that login with a null username fails
+        assertNull(result);
+    }
+
+    @Test
+    public void testLoginUser_NullPassword() {
+        User newUser = new User("john_doe", "password123", "john@example.com");
+        when(mockUserDatabase.get("john_doe")).thenReturn(newUser);
+
+        User result = userService.loginUser("john_doe", null);
+
+        // Expect that login with a null password fails
+        assertNull(result);
+    }
+
+    @Test
+    public void testLoginUser_EmptyFields() {
+        User result = userService.loginUser("", "");
+
+        // Expect that login with empty fields fails
+        assertNull(result);
+    }
+
+    @Test
+    public void testLoginUser_NonExistentUser() {
+        when(mockUserDatabase.get("non_existent_user")).thenReturn(null);
+
+        User result = userService.loginUser("non_existent_user", "password123");
+
+        // Expect that login for a non-existent user fails
+        assertNull(result);
     }
 
     // --------------- Tests for updateUserProfile() ---------------
@@ -110,4 +169,35 @@ public class UserServiceTest {
 
         assertFalse(result); // Assert that the update failed due to the username being taken
     }
+
+    @Test
+    public void testUpdateUserProfile_NullUser() {
+        assertThrows(NullPointerException.class, () -> {
+            userService.updateUserProfile(null, "new_username", "newpassword", "new@example.com");
+        });
+    }
+
+
+    @Test
+    public void testUpdateUserProfile_EmptyFields() {
+        User user = new User("john_doe", "password123", "john@example.com");
+        when(mockUserDatabase.get("john_doe")).thenReturn(user);
+
+        boolean result = userService.updateUserProfile(user, "", "", "");
+
+        // Expect the update to pass because the service does not validate empty fields (based on current implementation)
+        assertTrue(result);
+    }
+
+    @Test
+    public void testUpdateUserProfile_SameUsername() {
+        User user = new User("john_doe", "password123", "john@example.com");
+        when(mockUserDatabase.get("john_doe")).thenReturn(user);
+
+        boolean result = userService.updateUserProfile(user, "john_doe", "newpassword", "new@example.com");
+
+        // Expect that the update is successful when the username remains the same
+        assertTrue(result);
+    }
 }
+
